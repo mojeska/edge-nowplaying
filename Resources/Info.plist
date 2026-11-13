@@ -15,14 +15,14 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.2.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.2</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Edge Now Playing reads the current song and artwork from Music to show them on the Xeneon Edge.</string>
+	<string>Edge Now Playing reads the current song and artwork from Music or Spotify to show them on the Xeneon Edge.</string>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Edge Now Playing listens to the Music app to draw the visualizer. Nothing is recorded or saved.</string>
+	<string>Edge Now Playing listens to Music or Spotify to draw the visualizer. Nothing is recorded or saved.</string>
 </dict>
 </plist>

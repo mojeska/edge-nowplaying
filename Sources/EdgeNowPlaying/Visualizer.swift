@@ -20,7 +20,7 @@ final class Spectrum: @unchecked Sendable {
 /// Nothing is recorded or stored: each block of samples is analysed and dropped.
 final class AudioTap: @unchecked Sendable {
     let spectrum = Spectrum()
-    private(set) var pid: pid_t = 0
+    private var tapped: [AudioObjectID] = []
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
@@ -39,15 +39,20 @@ final class AudioTap: @unchecked Sendable {
 
     var running: Bool { procID != nil }
 
-    /// Starts tapping the process with this pid; returns false if Core Audio refuses.
-    @discardableResult
-    func start(pid: pid_t) -> Bool {
-        if running && pid == self.pid { return true }
-        stop()
-        guard let proc = Self.processObject(for: pid) else { NSLog("no audio process for pid %d", pid); return false }
-        self.pid = pid
+    /// Taps every audio process of this app (its own and its helpers', e.g. Spotify's), restarting when
+    /// that set changes. Call while the app is playing.
+    func follow(bundleID: String) {
+        let procs = Self.audioProcesses(bundlePrefix: bundleID)
+        guard !procs.isEmpty, procs != tapped || !running else { return }
+        start(procs)
+    }
 
-        let desc = CATapDescription(stereoMixdownOfProcesses: [proc])
+    @discardableResult
+    private func start(_ procs: [AudioObjectID]) -> Bool {
+        stop()
+        tapped = procs
+
+        let desc = CATapDescription(stereoMixdownOfProcesses: procs)
         desc.isPrivate = true
         desc.muteBehavior = .unmuted
         guard AudioHardwareCreateProcessTap(desc, &tapID) == noErr else { NSLog("process tap refused"); return false }
@@ -78,7 +83,7 @@ final class AudioTap: @unchecked Sendable {
             self?.consume(input, channels: channels)
         }
         guard status == noErr, AudioDeviceStart(aggregateID, procID) == noErr else { NSLog("tap start failed"); stop(); return false }
-        NSLog("tap started on pid %d (%.0f Hz, %d ch, output %@)", pid, sampleRate, channels, outUID)
+        NSLog("tap started on %d process(es) (%.0f Hz, %d ch, output %@)", procs.count, sampleRate, channels, outUID)
         return true
     }
 
@@ -86,7 +91,7 @@ final class AudioTap: @unchecked Sendable {
         if let p = procID { AudioDeviceStop(aggregateID, p); AudioDeviceDestroyIOProcID(aggregateID, p) }
         if aggregateID != kAudioObjectUnknown { AudioHardwareDestroyAggregateDevice(aggregateID) }
         if tapID != kAudioObjectUnknown { AudioHardwareDestroyProcessTap(tapID) }
-        procID = nil; aggregateID = AudioObjectID(kAudioObjectUnknown); tapID = AudioObjectID(kAudioObjectUnknown); pid = 0
+        procID = nil; aggregateID = AudioObjectID(kAudioObjectUnknown); tapID = AudioObjectID(kAudioObjectUnknown); tapped = []
     }
 
     private static func defaultOutputUID() -> String? {
@@ -101,12 +106,22 @@ final class AudioTap: @unchecked Sendable {
         return uid as String
     }
 
-    private static func processObject(for pid: pid_t) -> AudioObjectID? {
-        var p = pid, obj = AudioObjectID(kAudioObjectUnknown)
-        var size = UInt32(MemoryLayout<AudioObjectID>.size)
-        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyTranslatePIDToProcessObject, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
-        let r = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &p, &size, &obj)
-        return r == noErr && obj != kAudioObjectUnknown ? obj : nil
+    /// Core Audio process objects whose bundle ID is `bundlePrefix` or starts with it plus a dot.
+    private static func audioProcesses(bundlePrefix: String) -> [AudioObjectID] {
+        let sys = AudioObjectID(kAudioObjectSystemObject)
+        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(sys, &addr, 0, nil, &size) == noErr else { return [] }
+        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(sys, &addr, 0, nil, &size, &ids) == noErr else { return [] }
+        return ids.filter { id in
+            var bid: CFString = "" as CFString
+            var s = UInt32(MemoryLayout<CFString>.size)
+            var a = AudioObjectPropertyAddress(mSelector: kAudioProcessPropertyBundleID, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+            guard AudioObjectGetPropertyData(id, &a, 0, nil, &s, &bid) == noErr else { return false }
+            let b = bid as String
+            return b == bundlePrefix || b.hasPrefix(bundlePrefix + ".")
+        }.sorted()
     }
 
     /// Log-spaced FFT bin edges from 35 Hz to 16 kHz.
