@@ -2,7 +2,7 @@
 
 Shows what Apple Music or Spotify is playing on a **Corsair Xeneon Edge** touchscreen bar connected to a Mac. No iCUE needed.
 
-![Edge Now Playing on a 2560×720 display, with sample artwork](docs/preview.png)
+![Edge Now Playing on a Xeneon Edge: artwork, song, visualizer, clock and Up Next](docs/edge-photo.jpg)
 
 - Album artwork, title, artist and album, with a progress bar and the time left
 - A spectrum visualizer behind the text: one line for the left channel, one for the right, tinted to match the artwork
@@ -41,6 +41,8 @@ Changed your mind? Both are under **System Settings → Privacy & Security** (Au
 - **Settings:** click the Dock icon (or open the app again) for **Start at Login** and **Show in Dock**. There's also a menu bar icon with the same options.
 - **Right-click the Edge** (with the mouse) for Play/Pause, Next Track, Previous Track, Show Clock, Show Up Next, Settings and Quit.
 - **Show Clock / Show Up Next:** turn the clock and date, or the next song, on or off. Also in Settings and the menu bar menu. The idle screen always shows the clock.
+![With Show Clock and Show Up Next turned off, the song and progress bar take the full width](docs/edge-photo-noclock.jpg)
+
 - **Up Next** only appears when Music plays a playlist from your library with shuffle off. Music doesn't let other apps see its Up Next queue, so streams, stations and shuffled play can't show it, and neither can Spotify (its queue is only in its Web API).
 - **Play, pause, skip** also work with your keyboard's media keys or a Stream Deck's Multimedia actions. The Edge's touchscreen isn't used (see below).
 - **Music and Spotify:** the app shows whichever is playing; when both are paused, it keeps showing the last one.
