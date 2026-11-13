@@ -59,13 +59,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         status = item
     }
 
-    @objc private func toggleLogin(_ sender: NSMenuItem) {
-        do {
-            if SMAppService.mainApp.status == .enabled { try SMAppService.mainApp.unregister() }
-            else { try SMAppService.mainApp.register() }
-        } catch {
-            NSLog("Login item change failed: %@", error.localizedDescription)
+    /// Opening the app again while it runs (Finder, Spotlight, Launchpad) shows its controls,
+    /// since the menu bar icon can be hidden.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        showControls(); return false
+    }
+
+    private func showControls() {
+        let a = NSAlert()
+        a.messageText = "Edge Now Playing is running"
+        a.informativeText = edgeScreen() == nil ? "No Xeneon Edge found." : "Showing on the Xeneon Edge."
+        a.addButton(withTitle: "Keep Running")
+        a.addButton(withTitle: "Quit")
+        let login = NSButton(checkboxWithTitle: "Start at Login", target: nil, action: nil)
+        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        a.accessoryView = login
+        NSApp.activate(ignoringOtherApps: true)
+        let r = a.runModal()
+        setLogin(login.state == .on)
+        if let item = status?.menu?.items.first(where: { $0.title == "Start at Login" }) {
+            item.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }
+        if r == .alertSecondButtonReturn { NSApp.terminate(nil) }
+    }
+
+    private func setLogin(_ on: Bool) {
+        guard on != (SMAppService.mainApp.status == .enabled) else { return }
+        do { if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() } }
+        catch { NSLog("Login item change failed: %@", error.localizedDescription) }
+    }
+
+    @objc private func toggleLogin(_ sender: NSMenuItem) {
+        setLogin(SMAppService.mainApp.status != .enabled)
         sender.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 }
@@ -75,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @MainActor func render(to path: String, art: String?) {
     let m = MusicModel()
     m.state = .playing
-    m.title = "Under Water"; m.artist = "On Mars"; m.album = "Life After Dark"
+    m.title = "Sample Song"; m.artist = "Sample Artist"; m.album = "Sample Album"
     m.duration = 245; m.position = 92; m.positionAt = Date()
     m.artwork = art.flatMap { NSImage(contentsOfFile: $0) }
     if let a = m.artwork.flatMap(MusicModel.accent(of:)) { m.accent = a }
