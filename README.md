@@ -6,7 +6,7 @@ Shows what Apple Music or Spotify is playing on a **Corsair Xeneon Edge** touchs
 
 - Album artwork, title, artist and album, with a progress bar and the time left
 - A spectrum visualizer behind the text: one line for the left channel, one for the right, tinted to match the artwork
-- A 12-hour clock and date, which fill the screen when nothing is playing (you can hide them while music plays)
+- A 12-hour clock and date, which fill the screen when nothing is playing and dim to 30% brightness after 15 seconds (you can hide them while music plays)
 - The next song, when Music is playing a playlist in order
 - Fills the Edge on its own and leaves your main display alone
 
