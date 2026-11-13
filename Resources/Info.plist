@@ -6,6 +6,8 @@
 	<string>Edge Now Playing</string>
 	<key>CFBundleExecutable</key>
 	<string>EdgeNowPlaying</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.github.mojeska.edge-nowplaying</string>
 	<key>CFBundleName</key>
@@ -18,8 +20,6 @@
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.2</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Edge Now Playing reads the current song and artwork from Music to show them on the Xeneon Edge.</string>
 	<key>NSAudioCaptureUsageDescription</key>

@@ -9,9 +9,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var status: NSStatusItem?
 
+    /// Dock icon on (the default) makes it quit like any app: right-click in the Dock, or ⌘Q.
+    private var showInDock: Bool {
+        get { UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "showInDock"); applyDockSetting() }
+    }
+
+    private func applyDockSetting() {
+        NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
+        if let item = status?.menu?.items.first(where: { $0.title == "Show in Dock" }) { item.state = showInDock ? .on : .off }
+    }
+
     func applicationDidFinishLaunching(_ note: Notification) {
         music.start()
+        setUpMainMenu()
         setUpMenu()
+        applyDockSetting()
         place()
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
@@ -43,6 +56,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window?.orderFrontRegardless()
     }
 
+    /// App menu shown while the app is in front (Dock icon on).
+    private func setUpMainMenu() {
+        let main = NSMenu(), appItem = NSMenuItem()
+        main.addItem(appItem)
+        let m = NSMenu()
+        m.addItem(withTitle: "Edge Now Playing Settings…", action: #selector(openControls), keyEquivalent: ",").target = self
+        m.addItem(.separator())
+        m.addItem(withTitle: "Hide Edge Now Playing", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        m.addItem(withTitle: "Quit Edge Now Playing", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = m
+        NSApp.mainMenu = main
+    }
+
+    @objc private func openControls() { showControls() }
+
+    @objc private func toggleDock(_ sender: NSMenuItem) { showInDock.toggle() }
+
     private func setUpMenu() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "music.note.tv", accessibilityDescription: "Edge Now Playing")
@@ -53,6 +83,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         login.target = self
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
+        let dock = NSMenuItem(title: "Show in Dock", action: #selector(toggleDock(_:)), keyEquivalent: "")
+        dock.target = self
+        menu.addItem(dock)
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
@@ -73,10 +106,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         a.addButton(withTitle: "Quit")
         let login = NSButton(checkboxWithTitle: "Start at Login", target: nil, action: nil)
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        a.accessoryView = login
+        let dock = NSButton(checkboxWithTitle: "Show in Dock (quit from the Dock or with ⌘Q)", target: nil, action: nil)
+        dock.state = showInDock ? .on : .off
+        let box = NSStackView(views: [login, dock])
+        box.orientation = .vertical; box.alignment = .leading; box.spacing = 6
+        box.frame = NSRect(x: 0, y: 0, width: 320, height: 46)
+        a.accessoryView = box
         NSApp.activate(ignoringOtherApps: true)
         let r = a.runModal()
         setLogin(login.state == .on)
+        if (dock.state == .on) != showInDock { showInDock = dock.state == .on }
         if let item = status?.menu?.items.first(where: { $0.title == "Start at Login" }) {
             item.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }
@@ -127,6 +166,5 @@ MainActor.assumeIsolated {
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate
-    app.setActivationPolicy(.accessory)
     app.run()
 }

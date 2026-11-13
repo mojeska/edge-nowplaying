@@ -9,6 +9,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp "$(swift build -c release $ARCH --show-bin-path)/EdgeNowPlaying" "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/"
+mkdir -p "$APP/Contents/Resources" && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 # Signed with a local certificate (see README) so macOS keeps its permissions across rebuilds; ad-hoc if it is missing.
 ID="Edge Now Playing Local Signing"
 if security find-identity -p codesigning | grep -q "\"$ID\""; then codesign --force --sign "$ID" "$APP"; else codesign --force --sign - "$APP"; fi
