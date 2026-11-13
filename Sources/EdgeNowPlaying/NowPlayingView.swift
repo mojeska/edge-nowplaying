@@ -13,19 +13,27 @@ struct NowPlayingView: View {
                 if music.state == .off || music.state == .stopped || music.title.isEmpty {
                     idle(h: h)
                 } else {
-                    HStack(spacing: pad) {
-                        art(side: h - 2 * pad)
-                        info(h: h).frame(maxWidth: .infinity, alignment: .leading)
-                        ClockView(size: h * 0.12, dateSize: h * 0.05)
-                            .frame(width: h * 0.75, alignment: .trailing)
+                    WaveView(spectrum: music.tap.spectrum, color: Color(nsColor: music.accent),
+                             active: music.state == .playing, fade: h * 0.035) {
+                        playing(h: h, pad: pad)
                     }
-                    .padding(pad)
+                    playing(h: h, pad: pad)
                 }
             }
             .frame(width: geo.size.width, height: h)
         }
         .ignoresSafeArea()
         .environment(\.colorScheme, .dark)
+    }
+
+    private func playing(h: CGFloat, pad: CGFloat) -> some View {
+        HStack(spacing: pad) {
+            art(side: h - 2 * pad)
+            info(h: h).frame(maxWidth: .infinity, alignment: .leading)
+            ClockView(size: h * 0.12, dateSize: h * 0.05)
+                .frame(width: h * 0.75, alignment: .trailing)
+        }
+        .padding(pad)
     }
 
     private var background: some View {
@@ -39,8 +47,6 @@ struct NowPlayingView: View {
             .clipped()
             LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.6)],
                            startPoint: .leading, endPoint: .trailing)
-            WaveView(spectrum: music.tap.spectrum, color: Color(nsColor: music.accent),
-                     active: music.state == .playing)
         }
         .animation(.easeInOut(duration: 0.8), value: music.title)
     }
@@ -159,10 +165,13 @@ struct ClockView: View {
 
 /// Spectrum drawn as one crisp line (bass on the left, treble on the right), from the right edge of
 /// the artwork to the right edge of the screen.
-struct WaveView: View {
+/// `cutout` is the content drawn on top; the line fades out in a soft halo around it.
+struct WaveView<Cutout: View>: View {
     let spectrum: Spectrum
     let color: Color
     let active: Bool
+    let fade: CGFloat
+    @ViewBuilder let cutout: () -> Cutout
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 40)) { tl in
@@ -176,6 +185,22 @@ struct WaveView: View {
                 // Artwork is a square inset by `pad` on a strip `height` tall, so it ends at x = height.
                 let area = CGRect(x: size.height, y: 0, width: size.width - size.height, height: size.height)
                 stroke(bands, scale: 1.0, in: area, ctx: ctx, opacity: 0.6, width: 3)
+                if let sym = ctx.resolveSymbol(id: 0) {
+                    var c = ctx
+                    c.blendMode = .destinationOut
+                    c.drawLayer { l in
+                        // Thicken the content (copies around a circle), then soften the edge.
+                        l.addFilter(.blur(radius: fade * 0.6))
+                        let r = CGRect(origin: .zero, size: size)
+                        l.draw(sym, in: r)
+                        for k in 0..<12 {
+                            let a = Double(k) / 12 * 2 * .pi
+                            l.draw(sym, in: r.offsetBy(dx: cos(a) * fade, dy: sin(a) * fade))
+                        }
+                    }
+                }
+            } symbols: {
+                cutout().tag(0)
             }
             .blendMode(.plusLighter)
         }
