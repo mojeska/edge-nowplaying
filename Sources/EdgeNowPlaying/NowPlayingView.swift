@@ -18,7 +18,7 @@ struct NowPlayingView: View {
                 background
                 if music.state == .off || music.state == .stopped || music.title.isEmpty {
                     idle(h: h)
-                        .opacity(idleDimmed ? 0.4 : 1)
+                        .opacity(idleDimmed ? 0.5 : 1)
                         .task {   // cancelled when music starts, so the next idle screen starts bright
                             idleDimmed = false
                             guard (try? await Task.sleep(for: .seconds(15))) != nil else { return }
