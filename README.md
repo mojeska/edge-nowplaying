@@ -12,7 +12,7 @@ Shows what Apple Music or Spotify is playing on a **Corsair Xeneon Edge** touchs
 
 Corsair's widgets for the Edge need iCUE, which doesn't work on macOS. To macOS the Edge is just a second display, so this app draws straight onto it.
 
-This is an independent project, not affiliated with or endorsed by Corsair, Elgato or Apple.
+This is an independent project, not affiliated with or endorsed by Corsair, Elgato, Apple or Spotify.
 
 ## Requirements
 
@@ -76,6 +76,16 @@ Without the certificate the build is ad-hoc signed, and macOS asks for the permi
 - **Song info:** AppleScript to Music and Spotify, every 2 seconds and whenever either announces a track change. Artwork comes from Music, from Spotify's cover URL, or, for streamed Music songs without artwork, from Apple's iTunes Search.
 - **Visualizer:** a Core Audio process tap on the player (macOS 14.2+), a 2048-point FFT with Accelerate, and 56 bands from 35 Hz to 16 kHz with automatic gain.
 - **Display:** a borderless window on the Edge, found by name, that follows display changes.
+
+## Disclaimer
+
+Edge Now Playing is a hobby project, provided as is, with no warranty and no promises. Use it at your own risk.
+
+- It isn't notarized by Apple and is signed with a self-made certificate, so macOS can't vouch for it. Only install builds from this repository's Releases, or build it yourself.
+- It asks to control Music and Spotify and to listen to their audio. It only reads the song, sends the play, pause and skip commands you choose, and turns the sound into the visualizer; nothing is recorded, saved or sent anywhere. It only goes online to fetch cover art: Spotify's cover image, and Apple's iTunes Search when a Music song has none (sending the artist and album name).
+- It relies on Music's and Spotify's scripting and on macOS audio taps, which Apple or Spotify can change or remove in any update.
+
+The authors aren't liable for any damage, data loss or other harm from using it; the [LICENSE](LICENSE) has the full terms.
 
 ## License
 
