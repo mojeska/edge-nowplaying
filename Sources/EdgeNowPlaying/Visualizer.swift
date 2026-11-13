@@ -170,7 +170,7 @@ final class AudioTap: @unchecked Sendable {
         let range: Float = 45
         for b in 0..<Spectrum.bandCount {
             let v = min(max((db[b] - (peakDb - range)) / range, 0), 1)
-            smooth[b] += (v - smooth[b]) * (v > smooth[b] ? 0.55 : 0.18)
+            smooth[b] += (v - smooth[b]) * (v > smooth[b] ? 0.4 : 0.06)   // rise fast, fall slowly
         }
         spectrum.write(smooth)
         frames += 1
