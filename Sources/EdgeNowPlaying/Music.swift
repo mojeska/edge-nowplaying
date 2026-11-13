@@ -103,6 +103,16 @@ final class MusicModel: ObservableObject {
         return r
     }
 
+    /// Player commands; Music and Spotify understand the same words.
+    enum Command: String { case playPause = "playpause", next = "next track", previous = "previous track" }
+
+    /// Sends a command to the player being shown.
+    func send(_ c: Command) {
+        guard let current, running(current) else { return }
+        _ = run("tell application id \"\(current.bundleID)\" to \(c.rawValue)")
+        refresh()
+    }
+
     func refresh() {
         // Ask every running player; pick the one playing, preferring the one already shown.
         var reads: [(Source, [String])] = []

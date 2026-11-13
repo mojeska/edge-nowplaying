@@ -1,6 +1,6 @@
 # Edge Now Playing
 
-Shows what Apple Music is playing on a **Corsair Xeneon Edge** touchscreen bar connected to a Mac. No iCUE needed.
+Shows what Apple Music or Spotify is playing on a **Corsair Xeneon Edge** touchscreen bar connected to a Mac. No iCUE needed.
 
 ![Edge Now Playing on a 2560×720 display, with sample artwork](docs/preview.png)
 
@@ -17,7 +17,7 @@ This is an independent project, not affiliated with or endorsed by Corsair, Elga
 
 - macOS 14.2 or later, on Apple Silicon or Intel
 - A Xeneon Edge (or any display at least three times wider than tall) connected as a second display
-- The Music app
+- Apple Music or Spotify
 
 ## Install
 
@@ -26,18 +26,22 @@ This is an independent project, not affiliated with or endorsed by Corsair, Elga
 3. Open it. The app isn't notarized by Apple, so macOS blocks it the first time:
    - **macOS 15 or later:** open **System Settings → Privacy & Security**, scroll down to the message about Edge Now Playing, and click **Open Anyway**.
    - **macOS 14:** right-click the app and choose **Open**, then **Open** again.
-4. Play something in Music. macOS asks two questions; allow both:
-   - **Control "Music"**: to read the song and the artwork.
-   - **Record audio from Music**: for the visualizer. It only measures how loud each frequency band is; nothing is recorded or saved.
+4. Play something in Music or Spotify. macOS asks two questions; allow both (once per player):
+   - **Control "Music"** (or "Spotify"): to read the song and the artwork.
+   - **Record audio from Music** (or Spotify): for the visualizer. It only measures how loud each frequency band is; nothing is recorded or saved.
 
 Changed your mind? Both are under **System Settings → Privacy & Security** (Automation, and Screen & System Audio Recording).
+
+**About the purple dot:** while music plays, macOS shows a purple dot in the menu bar (and Edge Now Playing under Control Center's recording list). That's macOS flagging the audio tap the visualizer uses, the same indicator any app gets when it listens to system audio. It goes away when the music stops or the app quits. Nothing leaves the app: the sound is turned into the 56 bar heights and thrown away.
 
 ## Using it
 
 - **Quit:** right-click its Dock icon and choose Quit, or press ⌘Q while it's in front.
 - **Settings:** click the Dock icon (or open the app again) for **Start at Login** and **Show in Dock**. There's also a menu bar icon with the same options.
-- **Play, pause, skip:** use your keyboard's media keys, or a Stream Deck's Multimedia actions. The Edge's touchscreen isn't used (see below).
-- The app never opens Music itself; it only reads Music while Music is running.
+- **Right-click the Edge** (with the mouse) for Play/Pause, Next Track, Previous Track, Settings and Quit.
+- **Play, pause, skip** also work with your keyboard's media keys or a Stream Deck's Multimedia actions. The Edge's touchscreen isn't used (see below).
+- **Music and Spotify:** the app shows whichever is playing; when both are paused, it keeps showing the last one.
+- The app never opens Music or Spotify itself; it only reads them while they're running.
 
 ## Why the touchscreen isn't used
 
@@ -64,8 +68,8 @@ Without the certificate the build is ad-hoc signed, and macOS asks for the permi
 
 ## How it works
 
-- **Song info:** AppleScript to Music, every 2 seconds and whenever Music announces a track change.
-- **Visualizer:** a Core Audio process tap on Music (macOS 14.2+), a 2048-point FFT with Accelerate, and 56 bands from 35 Hz to 16 kHz with automatic gain.
+- **Song info:** AppleScript to Music and Spotify, every 2 seconds and whenever either announces a track change. Artwork comes from Music, from Spotify's cover URL, or, for streamed Music songs without artwork, from Apple's iTunes Search.
+- **Visualizer:** a Core Audio process tap on the player (macOS 14.2+), a 2048-point FFT with Accelerate, and 56 bands from 35 Hz to 16 kHz with automatic gain.
 - **Display:** a borderless window on the Edge, found by name, that follows display changes.
 
 ## License

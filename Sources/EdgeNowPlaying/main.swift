@@ -41,12 +41,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func place() {
         guard let screen = edgeScreen() else { window?.orderOut(nil); return }
         if window == nil {
-            let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
-            w.contentView = NSHostingView(rootView: NowPlayingView(music: music))
+            // A non-activating panel, so clicking it doesn't pull the app to the front.
+            let w = NSPanel(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel],
+                            backing: .buffered, defer: false)
+            let view = EdgeView(content: NSHostingView(rootView: NowPlayingView(music: music)))
+            view.makeMenu = { [weak self] in self?.edgeMenu() }
+            w.contentView = view
             w.backgroundColor = .black
             w.isOpaque = true
             w.hasShadow = false
-            w.ignoresMouseEvents = true      // touches land on the main display anyway
+            w.hidesOnDeactivate = false
             w.isReleasedWhenClosed = false
             w.level = .statusBar             // above the Edge's own menu bar
             w.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
@@ -67,6 +71,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         m.addItem(withTitle: "Quit Edge Now Playing", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = m
         NSApp.mainMenu = main
+    }
+
+    /// Right-click menu on the Edge: player controls, then the app's own settings.
+    private func edgeMenu() -> NSMenu {
+        let m = NSMenu(), active = music.state != .off
+        m.autoenablesItems = false
+        if active {
+            m.addItem(withTitle: music.sourceName, action: nil, keyEquivalent: "").isEnabled = false
+        }
+        let items: [(String, MusicModel.Command)] = [
+            (music.state == .playing ? "Pause" : "Play", .playPause), ("Next Track", .next), ("Previous Track", .previous)]
+        for (title, c) in items {
+            let i = m.addItem(withTitle: title, action: #selector(sendCommand(_:)), keyEquivalent: "")
+            i.target = self; i.representedObject = c.rawValue; i.isEnabled = active
+        }
+        m.addItem(.separator())
+        m.addItem(withTitle: "Settings…", action: #selector(openControls), keyEquivalent: "").target = self
+        m.addItem(withTitle: "Quit Edge Now Playing", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        return m
+    }
+
+    @objc private func sendCommand(_ sender: NSMenuItem) {
+        if let c = (sender.representedObject as? String).flatMap(MusicModel.Command.init) { music.send(c) }
     }
 
     @objc private func openControls() { showControls() }
@@ -131,6 +158,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleLogin(_ sender: NSMenuItem) {
         setLogin(SMAppService.mainApp.status != .enabled)
         sender.state = SMAppService.mainApp.status == .enabled ? .on : .off
+    }
+}
+
+/// Holds the SwiftUI view and takes every click itself, so right-clicks show the app's menu
+/// instead of falling through to Finder's desktop menu. Left clicks do nothing.
+final class EdgeView: NSView {
+    var makeMenu: (() -> NSMenu?)?
+
+    init(content: NSView) {
+        super.init(frame: .zero)
+        content.autoresizingMask = [.width, .height]
+        addSubview(content)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { frame.contains(point) ? self : nil }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func mouseDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.control) { rightMouseDown(with: event) }
+    }
+    override func rightMouseDown(with event: NSEvent) {
+        if let m = makeMenu?() { NSMenu.popUpContextMenu(m, with: event, for: self) }
     }
 }
 
