@@ -166,7 +166,14 @@ final class AudioTap: @unchecked Sendable {
         }
     }
 
-    /// Power per band in dB for one block of samples.
+    /// Music has far more energy in the bass, so raw levels slope down to the right like a ramp.
+    /// Lifting each band by this much per octave above 35 Hz levels the line out.
+    static let tiltDbPerOctave: Float = 4
+    private let tilt: [Float] = (0..<Spectrum.bandCount).map { b in   // band centres are log-spaced over 35 Hz–16 kHz
+        tiltDbPerOctave * log2(16_000 / 35) * (Float(b) + 0.5) / Float(Spectrum.bandCount)
+    }
+
+    /// Power per band in dB for one block of samples, with the tilt applied.
     private func bandsDb(_ samples: [Float]) -> [Float] {
         var x = vDSP.multiply(samples, window)
         var re = [Float](repeating: 0, count: n / 2), im = [Float](repeating: 0, count: n / 2)
@@ -187,7 +194,7 @@ final class AudioTap: @unchecked Sendable {
             let lo = edges[b], hi = max(edges[b + 1], lo + 1)
             var sum: Float = 0
             for k in lo..<hi { sum += power[k] }
-            return 10 * log10(sum / Float(hi - lo) / Float(n * n) + 1e-12)
+            return 10 * log10(sum / Float(hi - lo) / Float(n * n) + 1e-12) + tilt[b]
         }
     }
 }
