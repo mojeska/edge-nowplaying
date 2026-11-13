@@ -12,6 +12,8 @@ struct Source {
     let artData: String?
     /// Duration unit: Music reports seconds, Spotify milliseconds.
     let durationScale: Double
+    /// "previous track" for this player, run inside its tell block.
+    var previous = "previous track"
 
     static let sep = "\u{1F}"
 
@@ -45,7 +47,15 @@ struct Source {
         end tell
         """,
         artData: nil,
-        durationScale: 0.001)
+        durationScale: 0.001,
+        // Like its ⏮ button, Spotify first restarts a song that's a few seconds in; go to the start so one press goes back.
+        previous: """
+        if player position > 2 then
+          set player position to 0
+          delay 0.3
+        end if
+        previous track
+        """)
 
     static let all = [music, spotify]
 }
@@ -109,7 +119,8 @@ final class MusicModel: ObservableObject {
     /// Sends a command to the player being shown.
     func send(_ c: Command) {
         guard let current, running(current) else { return }
-        _ = run("tell application id \"\(current.bundleID)\" to \(c.rawValue)")
+        let verb = c == .previous ? current.previous : c.rawValue
+        _ = run("tell application id \"\(current.bundleID)\"\n\(verb)\nend tell")
         refresh()
     }
 
