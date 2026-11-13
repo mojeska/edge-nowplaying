@@ -36,12 +36,14 @@ struct NowPlayingView: View {
             info(h: h).frame(maxWidth: .infinity, alignment: .leading)
             let next = showNext && !music.nextTitle.isEmpty
             if showClock || next {
-                VStack(alignment: .trailing, spacing: 0) {
-                    if showClock { ClockView(size: h * 0.12, dateSize: h * 0.05) }
-                    Spacer(minLength: 0)
-                    if next { upNext(h: h) }
+                // Clock stays centred, as without Up Next; Up Next sits at the bottom, level with the times.
+                ZStack(alignment: .bottomTrailing) {
+                    if showClock {
+                        ClockView(size: h * 0.12, dateSize: h * 0.05)
+                            .frame(maxHeight: .infinity)
+                    }
+                    if next { upNext(h: h).padding(.bottom, h * 0.02) }
                 }
-                .padding(.vertical, h * 0.02)
                 .frame(width: h * 0.75, alignment: .trailing)
             }
         }
