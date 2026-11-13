@@ -1,0 +1,156 @@
+import SwiftUI
+
+/// Full-screen layout for a 2560×720 strip: artwork left, track info centre, clock right.
+struct NowPlayingView: View {
+    @ObservedObject var music: MusicModel
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            let pad = h * 0.08
+            ZStack {
+                background
+                if music.state == .off || music.state == .stopped || music.title.isEmpty {
+                    idle(h: h)
+                } else {
+                    HStack(spacing: pad) {
+                        art(side: h - 2 * pad)
+                        info(h: h).frame(maxWidth: .infinity, alignment: .leading)
+                        ClockView(size: h * 0.12, dateSize: h * 0.05)
+                            .frame(width: h * 0.75, alignment: .trailing)
+                    }
+                    .padding(pad)
+                }
+            }
+            .frame(width: geo.size.width, height: h)
+        }
+        .ignoresSafeArea()
+        .environment(\.colorScheme, .dark)
+    }
+
+    private var background: some View {
+        ZStack {
+            Color.black.overlay {
+                if let img = music.artwork {
+                    Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
+                        .blur(radius: 80).opacity(0.55)
+                }
+            }
+            .clipped()
+            LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.6)],
+                           startPoint: .leading, endPoint: .trailing)
+        }
+        .animation(.easeInOut(duration: 0.8), value: music.title)
+    }
+
+    private func art(side: CGFloat) -> some View {
+        Group {
+            if let img = music.artwork {
+                Image(nsImage: img).resizable().aspectRatio(contentMode: .fill)
+            } else {
+                ZStack {
+                    Color.white.opacity(0.08)
+                    Image(systemName: "music.note").font(.system(size: 160, weight: .light))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+            }
+        }
+        .frame(width: side, height: side)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.5), radius: 30, y: 10)
+    }
+
+    private func info(h: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: h * 0.025) {
+            HStack(spacing: 10) {
+                Image(systemName: music.state == .playing ? "play.fill" : "pause.fill")
+                Text(music.state == .playing ? "NOW PLAYING" : "PAUSED")
+            }
+            .font(.system(size: h * 0.04, weight: .semibold)).tracking(3)
+            .foregroundStyle(.white.opacity(0.55))
+            Text(music.title)
+                .font(.system(size: h * 0.12, weight: .bold))
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(music.artist)
+                .font(.system(size: h * 0.075, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85)).lineLimit(1)
+            if !music.album.isEmpty {
+                Text(music.album)
+                    .font(.system(size: h * 0.055))
+                    .foregroundStyle(.white.opacity(0.55)).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            ProgressRow(music: music, h: h)
+        }
+        .foregroundStyle(.white)
+        .padding(.vertical, h * 0.02)
+    }
+
+    private func idle(h: CGFloat) -> some View {
+        VStack(spacing: h * 0.04) {
+            ClockView(size: h * 0.3, dateSize: h * 0.07, centred: true)
+            Text(music.state == .off ? "Music isn't open" : "Nothing playing")
+                .font(.system(size: h * 0.05)).foregroundStyle(.white.opacity(0.45))
+        }
+        .foregroundStyle(.white)
+    }
+}
+
+/// Progress bar plus elapsed and remaining time, extrapolated between Music reads.
+struct ProgressRow: View {
+    @ObservedObject var music: MusicModel
+    let h: CGFloat
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.25)) { ctx in
+            let pos = current(at: ctx.date)
+            let frac = music.duration > 0 ? min(max(pos / music.duration, 0), 1) : 0
+            VStack(spacing: h * 0.02) {
+                GeometryReader { g in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.2))
+                        Capsule().fill(.white.opacity(0.9)).frame(width: g.size.width * frac)
+                    }
+                }
+                .frame(height: h * 0.018)
+                HStack {
+                    Text(Self.fmt(pos))
+                    Spacer()
+                    Text("-" + Self.fmt(max(music.duration - pos, 0)))
+                }
+                .font(.system(size: h * 0.045, weight: .medium).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.6))
+            }
+        }
+    }
+
+    private func current(at now: Date) -> Double {
+        guard music.state == .playing else { return music.position }
+        return min(music.position + now.timeIntervalSince(music.positionAt), music.duration)
+    }
+
+    static func fmt(_ s: Double) -> String {
+        let t = Int(s.rounded(.down))
+        return t >= 3600 ? String(format: "%d:%02d:%02d", t / 3600, t / 60 % 60, t % 60)
+                         : String(format: "%d:%02d", t / 60, t % 60)
+    }
+}
+
+struct ClockView: View {
+    let size: CGFloat
+    let dateSize: CGFloat
+    var centred = false
+
+    var body: some View {
+        TimelineView(.everyMinute) { ctx in
+            VStack(alignment: centred ? .center : .trailing, spacing: 4) {
+                Text(ctx.date, format: .dateTime.hour().minute())
+                    .font(.system(size: size, weight: .light).monospacedDigit())
+                Text(ctx.date, format: .dateTime.weekday(.wide).month(.wide).day())
+                    .font(.system(size: dateSize))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            .foregroundStyle(.white)
+        }
+    }
+}
