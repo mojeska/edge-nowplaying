@@ -157,7 +157,7 @@ struct ClockView: View {
     }
 }
 
-/// Spectrum drawn as crisp lines (bass in the middle, treble at the ends), from the right edge of
+/// Spectrum drawn as one crisp line (bass in the middle, treble at the ends), from the right edge of
 /// the artwork to the right edge of the screen.
 struct WaveView: View {
     let spectrum: Spectrum
@@ -177,7 +177,6 @@ struct WaveView: View {
                 // Artwork is a square inset by `pad` on a strip `height` tall, so it ends at x = height.
                 let area = CGRect(x: size.height, y: 0, width: size.width - size.height, height: size.height)
                 stroke(mirrored, scale: 1.0, in: area, ctx: ctx, opacity: 0.85, width: 3)
-                stroke(mirrored, scale: 0.55, in: area, ctx: ctx, opacity: 0.35, width: 2)
             }
             .blendMode(.plusLighter)
         }
