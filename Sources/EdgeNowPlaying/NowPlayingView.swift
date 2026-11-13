@@ -53,7 +53,7 @@ struct NowPlayingView: View {
                 ZStack {
                     Color.white.opacity(0.08)
                     Image(systemName: "music.note").font(.system(size: 160, weight: .light))
-                        .foregroundStyle(.white.opacity(0.4))
+                        .foregroundStyle(Color(white: 0.4))
                 }
             }
         }
@@ -69,17 +69,17 @@ struct NowPlayingView: View {
                 Text(music.state == .playing ? "NOW PLAYING" : "PAUSED")
             }
             .font(.system(size: h * 0.04, weight: .semibold)).tracking(3)
-            .foregroundStyle(.white.opacity(0.55))
+            .foregroundStyle(Color(white: 0.55))
             Text(music.title)
                 .font(.system(size: h * 0.12, weight: .bold))
                 .lineLimit(1).minimumScaleFactor(0.6)
             Text(music.artist)
                 .font(.system(size: h * 0.075, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85)).lineLimit(1)
+                .foregroundStyle(Color(white: 0.85)).lineLimit(1)
             if !music.album.isEmpty {
                 Text(music.album)
                     .font(.system(size: h * 0.055))
-                    .foregroundStyle(.white.opacity(0.55)).lineLimit(1)
+                    .foregroundStyle(Color(white: 0.55)).lineLimit(1)
             }
             Spacer(minLength: 0)
             ProgressRow(music: music, h: h)
@@ -92,7 +92,7 @@ struct NowPlayingView: View {
         VStack(spacing: h * 0.04) {
             ClockView(size: h * 0.3, dateSize: h * 0.07, centred: true)
             Text(music.state == .off ? "Music isn't open" : "Nothing playing")
-                .font(.system(size: h * 0.05)).foregroundStyle(.white.opacity(0.45))
+                .font(.system(size: h * 0.05)).foregroundStyle(Color(white: 0.45))
         }
         .foregroundStyle(.white)
     }
@@ -110,8 +110,8 @@ struct ProgressRow: View {
             VStack(spacing: h * 0.02) {
                 GeometryReader { g in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.2))
-                        Capsule().fill(.white.opacity(0.9)).frame(width: g.size.width * frac)
+                        Capsule().fill(Color(white: 0.22))
+                        Capsule().fill(Color(white: 0.9)).frame(width: g.size.width * frac)
                     }
                 }
                 .frame(height: h * 0.018)
@@ -121,7 +121,7 @@ struct ProgressRow: View {
                     Text("-" + Self.fmt(max(music.duration - pos, 0)))
                 }
                 .font(.system(size: h * 0.045, weight: .medium).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(Color(white: 0.6))
             }
         }
     }
@@ -150,7 +150,7 @@ struct ClockView: View {
                     .font(.system(size: size, weight: .light).monospacedDigit())
                 Text(ctx.date, format: .dateTime.weekday(.wide).month(.wide).day())
                     .font(.system(size: dateSize))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(Color(white: 0.55))
             }
             .foregroundStyle(.white)
         }
@@ -175,7 +175,7 @@ struct WaveView: View {
                 guard (bands.max() ?? 0) > 0.01 else { return }
                 // Artwork is a square inset by `pad` on a strip `height` tall, so it ends at x = height.
                 let area = CGRect(x: size.height, y: 0, width: size.width - size.height, height: size.height)
-                stroke(bands, scale: 1.0, in: area, ctx: ctx, opacity: 0.85, width: 3)
+                stroke(bands, scale: 1.0, in: area, ctx: ctx, opacity: 0.6, width: 3)
             }
             .blendMode(.plusLighter)
         }
