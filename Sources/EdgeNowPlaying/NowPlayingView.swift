@@ -118,7 +118,7 @@ struct NowPlayingView: View {
                 .font(.system(size: h * 0.035, weight: .semibold)).tracking(3)
                 .foregroundStyle(Color(white: 0.55))
             Text(music.nextTitle)
-                .font(.system(size: h * 0.055, weight: .medium))
+                .font(.system(size: h * 0.048, weight: .medium))
                 .foregroundStyle(Color(white: 0.7)).lineLimit(1)
             Text(music.nextArtist)
                 .font(.system(size: h * 0.045))
