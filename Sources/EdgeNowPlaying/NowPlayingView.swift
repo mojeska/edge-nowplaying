@@ -39,6 +39,8 @@ struct NowPlayingView: View {
             .clipped()
             LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.6)],
                            startPoint: .leading, endPoint: .trailing)
+            WaveView(spectrum: music.tap.spectrum, color: Color(nsColor: music.accent),
+                     active: music.state == .playing)
         }
         .animation(.easeInOut(duration: 0.8), value: music.title)
     }
@@ -152,5 +154,48 @@ struct ClockView: View {
             }
             .foregroundStyle(.white)
         }
+    }
+}
+
+/// Spectrum drawn as a soft mirrored wave (bass in the middle, treble at the edges) behind the content.
+struct WaveView: View {
+    let spectrum: Spectrum
+    let color: Color
+    let active: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 40)) { _ in
+            Canvas { ctx, size in
+                if !active { spectrum.decay() }
+                let bands = spectrum.read().map(CGFloat.init)
+                let mirrored = Array(bands.reversed()) + bands
+                draw(mirrored, scale: 1.0, in: size, ctx: ctx, opacity: 0.42)
+                draw(mirrored, scale: 0.55, in: size, ctx: ctx, opacity: 0.30)
+            }
+            .blur(radius: 5)
+            .blendMode(.plusLighter)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func draw(_ v: [CGFloat], scale: CGFloat, in size: CGSize, ctx: GraphicsContext, opacity: Double) {
+        guard v.count > 1 else { return }
+        let maxH = size.height * 0.62 * scale
+        let step = size.width / CGFloat(v.count - 1)
+        let pts = v.enumerated().map { CGPoint(x: CGFloat($0.offset) * step, y: size.height - $0.element * maxH) }
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: size.height))
+        path.addLine(to: pts[0])
+        for i in 1..<pts.count {     // smooth curve through the midpoints
+            let mid = CGPoint(x: (pts[i - 1].x + pts[i].x) / 2, y: (pts[i - 1].y + pts[i].y) / 2)
+            path.addQuadCurve(to: mid, control: pts[i - 1])
+        }
+        path.addLine(to: pts[pts.count - 1])
+        path.addLine(to: CGPoint(x: size.width, y: size.height))
+        path.closeSubpath()
+        ctx.fill(path, with: .linearGradient(
+            Gradient(colors: [color.opacity(opacity), color.opacity(opacity * 0.25)]),
+            startPoint: CGPoint(x: 0, y: size.height - maxH), endPoint: CGPoint(x: 0, y: size.height)))
+        ctx.stroke(path, with: .color(color.opacity(min(opacity * 1.6, 0.8))), lineWidth: 3)
     }
 }

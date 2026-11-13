@@ -16,6 +16,9 @@ final class MusicModel: ObservableObject {
     /// Position when last read, and when it was read; the view extrapolates while playing.
     @Published var position: Double = 0
     @Published var positionAt = Date()
+    /// A bright colour taken from the artwork, for the visualizer.
+    @Published var accent = NSColor(calibratedRed: 0.55, green: 0.6, blue: 1, alpha: 1)
+    let tap = AudioTap()
 
     private var trackKey = ""
     private var timer: Timer?
@@ -48,12 +51,12 @@ final class MusicModel: ObservableObject {
         refresh()
     }
 
-    private var musicRunning: Bool {
-        NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").isEmpty == false
+    private var musicApp: NSRunningApplication? {
+        NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").first
     }
 
     func refresh() {
-        guard musicRunning else { return clear(.off) }
+        guard let app = musicApp else { tap.stop(); return clear(.off) }
         var err: NSDictionary?
         guard let out = infoScript.executeAndReturnError(&err).stringValue else {
             if let err { NSLog("Music info failed: %@", err) }
@@ -62,12 +65,29 @@ final class MusicModel: ObservableObject {
         let f = out.components(separatedBy: sep)
         guard f.count >= 7 else { return clear(f.first.flatMap(State.init(rawValue:)) ?? .stopped) }
         state = State(rawValue: f[0]) ?? .paused
+        if state == .playing && tap.pid != app.processIdentifier { tap.start(pid: app.processIdentifier) }
         position = Self.num(f[4]); positionAt = Date()
         let key = [f[1], f[2], f[3], f[5]].joined(separator: "|")
         guard key != trackKey else { return }
         trackKey = key
         title = f[1]; artist = f[2]; album = f[3]; duration = Self.num(f[5])
         artwork = (Int(f[6]) ?? 0) > 0 ? loadArtwork() : nil
+        if let a = artwork.flatMap(Self.accent(of:)) { accent = a }
+    }
+
+    /// Average colour of the artwork, pushed bright and saturated so it reads on black.
+    static func accent(of img: NSImage) -> NSColor? {
+        guard let cg = img.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        var px = [UInt8](repeating: 0, count: 4)
+        guard let ctx = CGContext(data: &px, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        let c = NSColor(calibratedRed: CGFloat(px[0]) / 255, green: CGFloat(px[1]) / 255, blue: CGFloat(px[2]) / 255, alpha: 1)
+        var h: CGFloat = 0, sat: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        c.getHue(&h, saturation: &sat, brightness: &b, alpha: &a)
+        return NSColor(calibratedHue: h, saturation: max(sat, 0.35) * 0.9 + 0.1, brightness: max(b, 0.85), alpha: 1)
     }
 
     private func loadArtwork() -> NSImage? {

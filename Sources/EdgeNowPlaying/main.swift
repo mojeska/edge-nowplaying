@@ -78,6 +78,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     m.title = "Under Water"; m.artist = "On Mars"; m.album = "Life After Dark"
     m.duration = 245; m.position = 92; m.positionAt = Date()
     m.artwork = art.flatMap { NSImage(contentsOfFile: $0) }
+    if let a = m.artwork.flatMap(MusicModel.accent(of:)) { m.accent = a }
+    // a typical music spectrum: strong bass, a mid bump, falling treble, some jitter
+    m.tap.spectrum.write((0..<Spectrum.bandCount).map { i in
+        let x = Float(i) / Float(Spectrum.bandCount)
+        return max(0, min(1, 0.85 - 0.6 * x + 0.25 * sin(x * 14) + Float.random(in: -0.08...0.08)))
+    })
     let r = ImageRenderer(content: NowPlayingView(music: m).frame(width: 2560, height: 720))
     r.scale = 1
     guard let cg = r.cgImage,
