@@ -7,6 +7,8 @@ struct NowPlayingView: View {
     @AppStorage("showClock") private var showClock = true
     /// Off hides the next song (only known for a Music playlist in order).
     @AppStorage("showNext") private var showNext = true
+    /// The idle screen dims after a while; the Edge is bright.
+    @State private var idleDimmed = false
 
     var body: some View {
         GeometryReader { geo in
@@ -16,6 +18,12 @@ struct NowPlayingView: View {
                 background
                 if music.state == .off || music.state == .stopped || music.title.isEmpty {
                     idle(h: h)
+                        .opacity(idleDimmed ? 0.4 : 1)
+                        .task {   // cancelled when music starts, so the next idle screen starts bright
+                            idleDimmed = false
+                            guard (try? await Task.sleep(for: .seconds(15))) != nil else { return }
+                            withAnimation(.easeInOut(duration: 4)) { idleDimmed = true }
+                        }
                 } else {
                     WaveView(spectrum: music.tap.spectrum, color: Color(nsColor: music.accent),
                              active: music.state == .playing, fade: h * 0.035) {
@@ -143,6 +151,8 @@ struct ProgressRow: View {
     @AppStorage("showClock") private var showClock = true
     /// Off hides the next song (only known for a Music playlist in order).
     @AppStorage("showNext") private var showNext = true
+    /// The idle screen dims after a while; the Edge is bright.
+    @State private var idleDimmed = false
     let h: CGFloat
 
     var body: some View {
