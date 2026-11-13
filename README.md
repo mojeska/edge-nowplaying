@@ -1,6 +1,6 @@
 # Edge Now Playing
 
-Shows what Apple Music is playing on a Corsair Xeneon Edge (2560×720), with no iCUE needed: artwork, title, artist, album, progress, a clock, and a spectrum visualizer tinted by the artwork. A clock fills the screen when nothing is playing. Use the Stream Deck's Multimedia actions for play/pause and skip.
+Shows what Apple Music is playing on a Corsair Xeneon Edge (2560×720), with no iCUE needed: artwork, title, artist, album, progress, a clock, and a line-style spectrum visualizer tinted by the artwork. A clock fills the screen when nothing is playing. Use the Stream Deck's Multimedia actions for play/pause and skip.
 
 ![Preview](docs/preview.png)
 

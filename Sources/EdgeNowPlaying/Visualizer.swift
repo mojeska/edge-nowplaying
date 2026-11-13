@@ -43,7 +43,7 @@ final class AudioTap: @unchecked Sendable {
     func start(pid: pid_t) -> Bool {
         if running && pid == self.pid { return true }
         stop()
-        guard let proc = Self.processObject(for: pid) else { return false }
+        guard let proc = Self.processObject(for: pid) else { NSLog("no audio process for pid %d", pid); return false }
         self.pid = pid
 
         let desc = CATapDescription(stereoMixdownOfProcesses: [proc])
@@ -58,9 +58,13 @@ final class AudioTap: @unchecked Sendable {
         sampleRate = fmt.mSampleRate > 0 ? fmt.mSampleRate : 48_000
         edges = Self.bandEdges(n: n, rate: sampleRate)
 
+        // The aggregate device needs a real device as its clock: the current output.
+        guard let outUID = Self.defaultOutputUID() else { NSLog("no output device"); stop(); return false }
         let agg: [String: Any] = [
             kAudioAggregateDeviceNameKey: "Edge Now Playing tap",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
+            kAudioAggregateDeviceMainSubDeviceKey: outUID,
+            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: outUID]],
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: false,
             kAudioAggregateDeviceTapAutoStartKey: true,
@@ -72,7 +76,8 @@ final class AudioTap: @unchecked Sendable {
         let status = AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue) { [weak self] _, input, _, _, _ in
             self?.consume(input, channels: channels)
         }
-        guard status == noErr, AudioDeviceStart(aggregateID, procID) == noErr else { stop(); return false }
+        guard status == noErr, AudioDeviceStart(aggregateID, procID) == noErr else { NSLog("tap start failed"); stop(); return false }
+        NSLog("tap started on pid %d (%.0f Hz, %d ch, output %@)", pid, sampleRate, channels, outUID)
         return true
     }
 
@@ -81,6 +86,18 @@ final class AudioTap: @unchecked Sendable {
         if aggregateID != kAudioObjectUnknown { AudioHardwareDestroyAggregateDevice(aggregateID) }
         if tapID != kAudioObjectUnknown { AudioHardwareDestroyProcessTap(tapID) }
         procID = nil; aggregateID = AudioObjectID(kAudioObjectUnknown); tapID = AudioObjectID(kAudioObjectUnknown); pid = 0
+    }
+
+    private static func defaultOutputUID() -> String? {
+        var dev = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &dev) == noErr else { return nil }
+        var uid: CFString = "" as CFString
+        size = UInt32(MemoryLayout<CFString>.size)
+        addr.mSelector = kAudioDevicePropertyDeviceUID
+        guard AudioObjectGetPropertyData(dev, &addr, 0, nil, &size, &uid) == noErr else { return nil }
+        return uid as String
     }
 
     private static func processObject(for pid: pid_t) -> AudioObjectID? {
@@ -156,5 +173,8 @@ final class AudioTap: @unchecked Sendable {
             smooth[b] += (v - smooth[b]) * (v > smooth[b] ? 0.55 : 0.18)
         }
         spectrum.write(smooth)
+        frames += 1
+        if frames % 200 == 0 { NSLog("tap ok: frames %d, peak %.1f dB, max band %.2f", frames, peakDb, smooth.max() ?? 0) }
     }
+    private var frames = 0
 }

@@ -157,45 +157,47 @@ struct ClockView: View {
     }
 }
 
-/// Spectrum drawn as a soft mirrored wave (bass in the middle, treble at the edges) behind the content.
+/// Spectrum drawn as crisp lines (bass in the middle, treble at the ends), from the right edge of
+/// the artwork to the right edge of the screen.
 struct WaveView: View {
     let spectrum: Spectrum
     let color: Color
     let active: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 40)) { _ in
+        TimelineView(.animation(minimumInterval: 1.0 / 40)) { tl in
+            // Canvas only repaints when its inputs change, so it has to read the timeline's date.
+            let frame = tl.date
             Canvas { ctx, size in
+                _ = frame
                 if !active { spectrum.decay() }
                 let bands = spectrum.read().map(CGFloat.init)
+                guard (bands.max() ?? 0) > 0.01 else { return }
                 let mirrored = Array(bands.reversed()) + bands
-                draw(mirrored, scale: 1.0, in: size, ctx: ctx, opacity: 0.42)
-                draw(mirrored, scale: 0.55, in: size, ctx: ctx, opacity: 0.30)
+                // Artwork is a square inset by `pad` on a strip `height` tall, so it ends at x = height.
+                let area = CGRect(x: size.height, y: 0, width: size.width - size.height, height: size.height)
+                stroke(mirrored, scale: 1.0, in: area, ctx: ctx, opacity: 0.85, width: 3)
+                stroke(mirrored, scale: 0.55, in: area, ctx: ctx, opacity: 0.35, width: 2)
             }
-            .blur(radius: 5)
             .blendMode(.plusLighter)
         }
         .allowsHitTesting(false)
     }
 
-    private func draw(_ v: [CGFloat], scale: CGFloat, in size: CGSize, ctx: GraphicsContext, opacity: Double) {
+    private func stroke(_ v: [CGFloat], scale: CGFloat, in r: CGRect, ctx: GraphicsContext, opacity: Double, width: CGFloat) {
         guard v.count > 1 else { return }
-        let maxH = size.height * 0.62 * scale
-        let step = size.width / CGFloat(v.count - 1)
-        let pts = v.enumerated().map { CGPoint(x: CGFloat($0.offset) * step, y: size.height - $0.element * maxH) }
+        let maxH = r.height * 0.62 * scale
+        let base = r.maxY - r.height * 0.04
+        let step = r.width / CGFloat(v.count - 1)
+        let pts = v.enumerated().map { CGPoint(x: r.minX + CGFloat($0.offset) * step, y: base - $0.element * maxH) }
         var path = Path()
-        path.move(to: CGPoint(x: 0, y: size.height))
-        path.addLine(to: pts[0])
+        path.move(to: pts[0])
         for i in 1..<pts.count {     // smooth curve through the midpoints
             let mid = CGPoint(x: (pts[i - 1].x + pts[i].x) / 2, y: (pts[i - 1].y + pts[i].y) / 2)
             path.addQuadCurve(to: mid, control: pts[i - 1])
         }
         path.addLine(to: pts[pts.count - 1])
-        path.addLine(to: CGPoint(x: size.width, y: size.height))
-        path.closeSubpath()
-        ctx.fill(path, with: .linearGradient(
-            Gradient(colors: [color.opacity(opacity), color.opacity(opacity * 0.25)]),
-            startPoint: CGPoint(x: 0, y: size.height - maxH), endPoint: CGPoint(x: 0, y: size.height)))
-        ctx.stroke(path, with: .color(color.opacity(min(opacity * 1.6, 0.8))), lineWidth: 3)
+        ctx.stroke(path, with: .color(color.opacity(opacity)),
+                   style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
     }
 }
