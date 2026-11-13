@@ -6,7 +6,8 @@ Shows what Apple Music or Spotify is playing on a **Corsair Xeneon Edge** touchs
 
 - Album artwork, title, artist and album, with a progress bar and the time left
 - A spectrum visualizer behind the text: one line for the left channel, one for the right, tinted to match the artwork
-- A clock and date, which fill the screen when nothing is playing
+- A clock and date, which fill the screen when nothing is playing (you can hide them while music plays)
+- The next song, when Music is playing a playlist in order
 - Fills the Edge on its own and leaves your main display alone
 
 Corsair's widgets for the Edge need iCUE, which doesn't work on macOS. To macOS the Edge is just a second display, so this app draws straight onto it.
@@ -38,7 +39,9 @@ Changed your mind? Both are under **System Settings → Privacy & Security** (Au
 
 - **Quit:** right-click its Dock icon and choose Quit, or press ⌘Q while it's in front.
 - **Settings:** click the Dock icon (or open the app again) for **Start at Login** and **Show in Dock**. There's also a menu bar icon with the same options.
-- **Right-click the Edge** (with the mouse) for Play/Pause, Next Track, Previous Track, Settings and Quit.
+- **Right-click the Edge** (with the mouse) for Play/Pause, Next Track, Previous Track, Show Clock, Show Up Next, Settings and Quit.
+- **Show Clock / Show Up Next:** turn the clock and date, or the next song, on or off. Also in Settings and the menu bar menu. The idle screen always shows the clock.
+- **Up Next** only appears when Music plays a playlist from your library with shuffle off. Music doesn't let other apps see its Up Next queue, so streams, stations and shuffled play can't show it, and neither can Spotify (its queue is only in its Web API).
 - **Play, pause, skip** also work with your keyboard's media keys or a Stream Deck's Multimedia actions. The Edge's touchscreen isn't used (see below).
 - **Music and Spotify:** the app shows whichever is playing; when both are paused, it keeps showing the last one.
 - The app never opens Music or Spotify itself; it only reads them while they're running.

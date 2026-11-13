@@ -5,6 +5,8 @@ struct NowPlayingView: View {
     @ObservedObject var music: MusicModel
     /// Off hides the clock and date beside the song; the idle screen keeps its clock.
     @AppStorage("showClock") private var showClock = true
+    /// Off hides the next song (only known for a Music playlist in order).
+    @AppStorage("showNext") private var showNext = true
 
     var body: some View {
         GeometryReader { geo in
@@ -32,9 +34,15 @@ struct NowPlayingView: View {
         HStack(spacing: pad) {
             art(side: h - 2 * pad)
             info(h: h).frame(maxWidth: .infinity, alignment: .leading)
-            if showClock {
-                ClockView(size: h * 0.12, dateSize: h * 0.05)
-                    .frame(width: h * 0.75, alignment: .trailing)
+            let next = showNext && !music.nextTitle.isEmpty
+            if showClock || next {
+                VStack(alignment: .trailing, spacing: 0) {
+                    if showClock { ClockView(size: h * 0.12, dateSize: h * 0.05) }
+                    Spacer(minLength: 0)
+                    if next { upNext(h: h) }
+                }
+                .padding(.vertical, h * 0.02)
+                .frame(width: h * 0.75, alignment: .trailing)
             }
         }
         .padding(pad)
@@ -98,6 +106,20 @@ struct NowPlayingView: View {
         .padding(.vertical, h * 0.02)
     }
 
+    private func upNext(h: CGFloat) -> some View {
+        VStack(alignment: .trailing, spacing: h * 0.012) {
+            Text("UP NEXT")
+                .font(.system(size: h * 0.035, weight: .semibold)).tracking(3)
+                .foregroundStyle(Color(white: 0.55))
+            Text(music.nextTitle)
+                .font(.system(size: h * 0.055, weight: .semibold))
+                .foregroundStyle(.white).lineLimit(1)
+            Text(music.nextArtist)
+                .font(.system(size: h * 0.045))
+                .foregroundStyle(Color(white: 0.6)).lineLimit(1)
+        }
+    }
+
     private func idle(h: CGFloat) -> some View {
         VStack(spacing: h * 0.04) {
             ClockView(size: h * 0.3, dateSize: h * 0.07, centred: true)
@@ -113,6 +135,8 @@ struct ProgressRow: View {
     @ObservedObject var music: MusicModel
     /// Off hides the clock and date beside the song; the idle screen keeps its clock.
     @AppStorage("showClock") private var showClock = true
+    /// Off hides the next song (only known for a Music playlist in order).
+    @AppStorage("showNext") private var showNext = true
     let h: CGFloat
 
     var body: some View {

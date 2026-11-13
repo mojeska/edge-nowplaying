@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Display options, read by NowPlayingView through @AppStorage.
-    private static let displayOptions = [("Show Clock", "showClock")]
+    private static let displayOptions = [("Show Clock", "showClock"), ("Show Up Next", "showNext")]
 
     private func displayItems() -> [NSMenuItem] {
         Self.displayOptions.map { title, key in
@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleOption(_ sender: NSMenuItem) {
         guard let key = sender.representedObject as? String else { return }
         setOption(key, sender.state != .on)
+        music.refresh()
     }
 
     private func option(_ key: String) -> Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
@@ -178,6 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setLogin(login.state == .on)
         if (dock.state == .on) != showInDock { showInDock = dock.state == .on }
         for (b, key) in options { setOption(key, b.state == .on) }
+        music.refresh()
         if let item = status?.menu?.items.first(where: { $0.title == "Start at Login" }) {
             item.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }
@@ -225,6 +227,7 @@ final class EdgeView: NSView {
     m.state = .playing
     m.title = "Sample Song"; m.artist = "Sample Artist"; m.album = "Sample Album"
     m.duration = 245; m.position = 92; m.positionAt = Date()
+    m.nextTitle = "Next Song"; m.nextArtist = "Next Artist"
     m.artwork = art.flatMap { NSImage(contentsOfFile: $0) }
     if let a = m.artwork.flatMap(MusicModel.accent(of:)) { m.accent = a }
     // a typical music spectrum: strong bass, a mid bump, falling treble, some jitter

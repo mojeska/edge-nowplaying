@@ -12,6 +12,8 @@ struct Source {
     let artData: String?
     /// Duration unit: Music reports seconds, Spotify milliseconds.
     let durationScale: Double
+    /// Returns title·artist of the next song, or "" when unknown.
+    var next: String? = nil
 
     static let sep = "\u{1F}"
 
@@ -32,7 +34,26 @@ struct Source {
         artData: """
         tell application id "com.apple.Music" to return raw data of artwork 1 of current track
         """,
-        durationScale: 1)
+        durationScale: 1,
+        // Only a playlist in order has a known next song: streams, stations and Up Next aren't scriptable.
+        next: """
+        tell application id "com.apple.Music"
+          try
+            if shuffle enabled then return ""
+            set p to current playlist
+            set i to index of current track
+            if i < (count of tracks of p) then
+              set t to track (i + 1) of p
+            else if song repeat is all then
+              set t to track 1 of p
+            else
+              return ""
+            end if
+            return (name of t) & "\(sep)" & (artist of t)
+          end try
+          return ""
+        end tell
+        """)
 
     static let spotify = Source(
         name: "Spotify", bundleID: "com.spotify.client", notification: "com.spotify.client.PlaybackStateChanged",
@@ -68,6 +89,9 @@ final class MusicModel: ObservableObject {
     @Published var accent = NSColor(calibratedRed: 0.55, green: 0.6, blue: 1, alpha: 1)
     /// The app being shown ("Music" or "Spotify").
     @Published var sourceName = ""
+    /// The song after this one, when the player can tell; empty otherwise.
+    @Published var nextTitle = ""
+    @Published var nextArtist = ""
     let tap = AudioTap()
 
     private var current: Source?
@@ -140,6 +164,15 @@ final class MusicModel: ObservableObject {
             artwork = nil
         }
         if artwork == nil && artTries < 3 { artTries += 1; loadArtwork(src, field: f[6], key: key) }
+        readNext(src)
+    }
+
+    private func readNext(_ src: Source) {
+        let on = UserDefaults.standard.object(forKey: "showNext") as? Bool ?? true
+        let f = on ? src.next.flatMap { run($0)?.stringValue }?.components(separatedBy: Source.sep) ?? [] : []
+        let (t, a) = f.count == 2 ? (f[0], f[1]) : ("", "")
+        if t != nextTitle { nextTitle = t }
+        if a != nextArtist { nextArtist = a }
     }
 
     /// Music: embedded artwork, else Apple's iTunes Search (streamed songs often have none).
@@ -175,6 +208,7 @@ final class MusicModel: ObservableObject {
         state = s
         guard !trackKey.isEmpty else { return }
         trackKey = ""; title = ""; artist = ""; album = ""; duration = 0; position = 0; artwork = nil
+        nextTitle = ""; nextArtist = ""
     }
 
     /// Average colour of the artwork, pushed bright and saturated so it reads on black.
