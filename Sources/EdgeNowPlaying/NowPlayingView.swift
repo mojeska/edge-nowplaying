@@ -163,7 +163,7 @@ struct ClockView: View {
     }
 }
 
-/// Spectrum drawn as one crisp line (bass on the left, treble on the right), from the right edge of
+/// Spectrum drawn as two crisp lines, left channel bright and right channel faint (bass on the left, treble on the right), from the right edge of
 /// the artwork to the right edge of the screen.
 /// `cutout` is the content drawn on top; the line fades out in a soft halo around it.
 struct WaveView<Cutout: View>: View {
@@ -180,11 +180,13 @@ struct WaveView<Cutout: View>: View {
             Canvas { ctx, size in
                 _ = frame
                 if !active { spectrum.decay() }
-                let bands = spectrum.read().map(CGFloat.init)
-                guard (bands.max() ?? 0) > 0.01 else { return }
+                let left = spectrum.read(0).map(CGFloat.init)
+                let right = spectrum.read(1).map(CGFloat.init)
+                guard max(left.max() ?? 0, right.max() ?? 0) > 0.01 else { return }
                 // Artwork is a square inset by `pad` on a strip `height` tall, so it ends at x = height.
                 let area = CGRect(x: size.height, y: 0, width: size.width - size.height, height: size.height)
-                stroke(bands, scale: 1.0, in: area, ctx: ctx, opacity: 0.6, width: 3)
+                stroke(right, scale: 0.8, in: area, ctx: ctx, opacity: 0.3, width: 2)
+                stroke(left, scale: 1.0, in: area, ctx: ctx, opacity: 0.6, width: 3)
                 if let sym = ctx.resolveSymbol(id: 0) {
                     var c = ctx
                     c.blendMode = .destinationOut

@@ -80,10 +80,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     m.artwork = art.flatMap { NSImage(contentsOfFile: $0) }
     if let a = m.artwork.flatMap(MusicModel.accent(of:)) { m.accent = a }
     // a typical music spectrum: strong bass, a mid bump, falling treble, some jitter
-    m.tap.spectrum.write((0..<Spectrum.bandCount).map { i in
-        let x = Float(i) / Float(Spectrum.bandCount)
-        return max(0, min(1, 0.85 - 0.6 * x + 0.25 * sin(x * 14) + Float.random(in: -0.08...0.08)))
-    })
+    for ch in 0..<2 {
+        m.tap.spectrum.write(ch, (0..<Spectrum.bandCount).map { i in
+            let x = Float(i) / Float(Spectrum.bandCount)
+            return max(0, min(1, 0.85 - 0.6 * x + 0.25 * sin(x * 14 + Float(ch)) + Float.random(in: -0.08...0.08)))
+        })
+    }
     let r = ImageRenderer(content: NowPlayingView(music: m).frame(width: 2560, height: 720))
     r.scale = 1
     guard let cg = r.cgImage,
