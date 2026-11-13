@@ -185,11 +185,22 @@ struct ClockView: View {
     let dateSize: CGFloat
     var centred = false
 
+    private static func formatter(_ f: String) -> DateFormatter {
+        let d = DateFormatter(); d.locale = Locale(identifier: "en_US_POSIX"); d.dateFormat = f; return d
+    }
+    private static let time = formatter("h:mm"), ampm = formatter("a")
+
     var body: some View {
         TimelineView(.everyMinute) { ctx in
             VStack(alignment: centred ? .center : .trailing, spacing: 4) {
-                Text(ctx.date, format: .dateTime.hour().minute())
-                    .font(.system(size: size, weight: .light).monospacedDigit())
+                // Always 12-hour, whatever the Mac's clock setting.
+                HStack(alignment: .firstTextBaseline, spacing: size * 0.08) {
+                    Text(Self.time.string(from: ctx.date))
+                        .font(.system(size: size, weight: .light).monospacedDigit())
+                    Text(Self.ampm.string(from: ctx.date))
+                        .font(.system(size: size * 0.32, weight: .medium))
+                        .foregroundStyle(Color(white: 0.55))
+                }
                 Text(ctx.date, format: .dateTime.weekday(.wide).month(.wide).day())
                     .font(.system(size: dateSize))
                     .foregroundStyle(Color(white: 0.55))
