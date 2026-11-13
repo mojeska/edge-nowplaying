@@ -15,6 +15,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         set { UserDefaults.standard.set(newValue, forKey: "showInDock"); applyDockSetting() }
     }
 
+    /// Display options, read by NowPlayingView through @AppStorage.
+    private static let displayOptions = [("Show Clock", "showClock")]
+
+    private func displayItems() -> [NSMenuItem] {
+        Self.displayOptions.map { title, key in
+            let i = NSMenuItem(title: title, action: #selector(toggleOption(_:)), keyEquivalent: "")
+            i.target = self; i.representedObject = key
+            i.state = option(key) ? .on : .off
+            return i
+        }
+    }
+
+    @objc private func toggleOption(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String else { return }
+        setOption(key, sender.state != .on)
+    }
+
+    private func option(_ key: String) -> Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+
+    /// Saves the option and ticks it in the menu bar menu; the right-click menu is rebuilt each time.
+    private func setOption(_ key: String, _ on: Bool) {
+        UserDefaults.standard.set(on, forKey: key)
+        status?.menu?.items.first { $0.representedObject as? String == key }?.state = on ? .on : .off
+    }
+
     private func applyDockSetting() {
         NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
         if let item = status?.menu?.items.first(where: { $0.title == "Show in Dock" }) { item.state = showInDock ? .on : .off }
@@ -87,6 +112,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             i.target = self; i.representedObject = c.rawValue; i.isEnabled = active
         }
         m.addItem(.separator())
+        displayItems().forEach(m.addItem)
+        m.addItem(.separator())
         m.addItem(withTitle: "Settings…", action: #selector(openControls), keyEquivalent: "").target = self
         m.addItem(withTitle: "Quit Edge Now Playing", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         return m
@@ -114,6 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dock.target = self
         menu.addItem(dock)
         menu.addItem(.separator())
+        displayItems().forEach(menu.addItem)
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
         status = item
@@ -135,14 +164,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         let dock = NSButton(checkboxWithTitle: "Show in Dock (quit from the Dock or with ⌘Q)", target: nil, action: nil)
         dock.state = showInDock ? .on : .off
-        let box = NSStackView(views: [login, dock])
+        let options = Self.displayOptions.map { title, key in
+            let b = NSButton(checkboxWithTitle: title, target: nil, action: nil)
+            b.state = option(key) ? .on : .off
+            return (b, key)
+        }
+        let box = NSStackView(views: [login, dock] + options.map(\.0))
         box.orientation = .vertical; box.alignment = .leading; box.spacing = 6
-        box.frame = NSRect(x: 0, y: 0, width: 320, height: 46)
+        box.frame = NSRect(x: 0, y: 0, width: 320, height: CGFloat(box.views.count) * 23)
         a.accessoryView = box
         NSApp.activate(ignoringOtherApps: true)
         let r = a.runModal()
         setLogin(login.state == .on)
         if (dock.state == .on) != showInDock { showInDock = dock.state == .on }
+        for (b, key) in options { setOption(key, b.state == .on) }
         if let item = status?.menu?.items.first(where: { $0.title == "Start at Login" }) {
             item.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }

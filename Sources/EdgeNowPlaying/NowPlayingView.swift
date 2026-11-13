@@ -3,6 +3,8 @@ import SwiftUI
 /// Full-screen layout for a 2560×720 strip: artwork left, track info centre, clock right.
 struct NowPlayingView: View {
     @ObservedObject var music: MusicModel
+    /// Off hides the clock and date beside the song; the idle screen keeps its clock.
+    @AppStorage("showClock") private var showClock = true
 
     var body: some View {
         GeometryReader { geo in
@@ -30,8 +32,10 @@ struct NowPlayingView: View {
         HStack(spacing: pad) {
             art(side: h - 2 * pad)
             info(h: h).frame(maxWidth: .infinity, alignment: .leading)
-            ClockView(size: h * 0.12, dateSize: h * 0.05)
-                .frame(width: h * 0.75, alignment: .trailing)
+            if showClock {
+                ClockView(size: h * 0.12, dateSize: h * 0.05)
+                    .frame(width: h * 0.75, alignment: .trailing)
+            }
         }
         .padding(pad)
     }
@@ -107,6 +111,8 @@ struct NowPlayingView: View {
 /// Progress bar plus elapsed and remaining time, extrapolated between Music reads.
 struct ProgressRow: View {
     @ObservedObject var music: MusicModel
+    /// Off hides the clock and date beside the song; the idle screen keeps its clock.
+    @AppStorage("showClock") private var showClock = true
     let h: CGFloat
 
     var body: some View {
