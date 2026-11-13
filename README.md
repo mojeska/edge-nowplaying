@@ -4,13 +4,14 @@ Shows what Apple Music is playing on a Corsair Xeneon Edge (2560×720), with no 
 
 ![Preview](docs/preview.png)
 
-Build and install to `~/Applications`, then start it:
+Build and install to `~/Applications`, then start it (universal: Apple Silicon and Intel, macOS 14.2+):
 
 ```sh
+./make-cert.sh        # once per Mac: local signing certificate
 ./build.sh --install
 ```
 
-- On first run macOS asks to let it control **Music**. Allow it (System Settings → Privacy & Security → Automation). Rebuilding changes the ad-hoc signature, so macOS may ask again.
+- On first run macOS asks to let it control **Music**. Allow it (System Settings → Privacy & Security → Automation). With the certificate from `make-cert.sh`, rebuilds keep the permission; without it the build is ad-hoc signed and macOS asks again after each rebuild.
 - macOS also asks to let it record **Music's audio** for the visualizer (System Settings → Privacy & Security → Screen & System Audio Recording). It only measures loudness per frequency band; nothing is recorded or saved. Needs macOS 14.2+.
 - Menu bar icon (TV with a note): **Start at Login**, **Quit**.
 - The app never opens Music; it only reads it while Music is running.
@@ -21,6 +22,10 @@ Render the layout with sample data, without the Edge:
 ```sh
 "$(swift build -c release --show-bin-path)/EdgeNowPlaying" --render out.png [artwork.jpg]
 ```
+
+## Other Macs
+
+Clone the repo and run the two commands above on that Mac; it needs Xcode or the Command Line Tools. Each Mac asks for the two permissions once. A copied `.app` also works, but Gatekeeper blocks it the first time because it isn't notarized: right-click it and choose Open.
 
 ## Why no touch
 
