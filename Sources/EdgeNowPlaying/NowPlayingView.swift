@@ -33,19 +33,26 @@ struct NowPlayingView: View {
     private func playing(h: CGFloat, pad: CGFloat) -> some View {
         HStack(spacing: pad) {
             art(side: h - 2 * pad)
-            info(h: h).frame(maxWidth: .infinity, alignment: .leading)
-            let next = showNext && !music.nextTitle.isEmpty
-            if showClock || next {
-                // Clock stays centred, as without Up Next; Up Next sits at the bottom, level with the times.
-                ZStack(alignment: .bottomTrailing) {
-                    if showClock {
-                        ClockView(size: h * 0.12, dateSize: h * 0.05)
-                            .frame(maxHeight: .infinity)
+            // The progress bar runs under the song info and the clock column, to the right edge.
+            VStack(spacing: h * 0.03) {
+                HStack(spacing: pad) {
+                    info(h: h).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    let next = showNext && !music.nextTitle.isEmpty
+                    if showClock || next {
+                        // Clock centred in the space above the bar; Up Next at the bottom, just above it.
+                        ZStack(alignment: .bottomTrailing) {
+                            if showClock {
+                                ClockView(size: h * 0.12, dateSize: h * 0.05)
+                                    .frame(maxHeight: .infinity)
+                            }
+                            if next { upNext(h: h) }
+                        }
+                        .frame(width: h * 0.75, alignment: .trailing)
                     }
-                    if next { upNext(h: h).padding(.bottom, h * 0.02) }
                 }
-                .frame(width: h * 0.75, alignment: .trailing)
+                ProgressRow(music: music, h: h)
             }
+            .padding(.vertical, h * 0.02)
         }
         .padding(pad)
     }
@@ -101,11 +108,8 @@ struct NowPlayingView: View {
                     .font(.system(size: h * 0.055))
                     .foregroundStyle(Color(white: 0.55)).lineLimit(1)
             }
-            Spacer(minLength: 0)
-            ProgressRow(music: music, h: h)
         }
         .foregroundStyle(.white)
-        .padding(.vertical, h * 0.02)
     }
 
     private func upNext(h: CGFloat) -> some View {
